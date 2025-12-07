@@ -9,14 +9,14 @@
     {
       "name": "search-focl-ir-ie",
       "title": "Search Foclóir.ie",
-      "description": "Retrieves a translation from the Fócloir.ie dictionary",
+      "description": "Retrieves a translation from Fócloir.ie, the New English-Irish Dictionary",
       "mode": "view",
       "subtitle": "Translate from English to Irish"
     },
     {
       "name": "search-teanglann-ie",
       "title": "Search Teanglann.ie",
-      "description": "Retrieves a translation from the Teanglann.ie dictionary",
+      "description": "Retrieves a translation from the available dictionaries on Teanglann.ie",
       "mode": "view",
       "subtitle": "Translate bi-directionally (better from Irish to English)"
     },
@@ -32,7 +32,42 @@
       "title": "Search Foclóir Corpus",
       "description": "Searches the Foclóir Corpas (Foclóir Corpus), a collection of over 30 million Irish language texts. Requires an account to access.",
       "mode": "view",
-      "subtitle": "Search the Foclóir Corpus"
+      "subtitle": "Search the Foclóir Corpas",
+      "preferences": [
+        {
+          "name": "corpas-username",
+          "title": "Corpas Username",
+          "description": "The username of your Corpas account",
+          "type": "textfield",
+          "required": false
+        },
+        {
+          "name": "corpas-password",
+          "title": "Corpas Password",
+          "description": "The password of your Corpas account",
+          "type": "password",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "preferences": [
+    {
+      "name": "language",
+      "title": "Language",
+      "description": "The language the extension is in",
+      "type": "dropdown",
+      "data": [
+        {
+          "title": "English",
+          "value": "en"
+        },
+        {
+          "title": "Irish",
+          "value": "ga"
+        }
+      ],
+      "required": false
     }
   ],
   "dependencies": {

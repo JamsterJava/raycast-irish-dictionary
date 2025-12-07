@@ -1,4 +1,4 @@
-import { List, ActionPanel, Action, Color } from "@raycast/api";
+import { List, ActionPanel, Action, Color, getPreferenceValues } from "@raycast/api";
 import { useState } from "react";
 import * as cheerio from 'cheerio';
 
@@ -7,13 +7,15 @@ export default function Command() {
 	const [data, setData] = useState<(DictionaryEntry | null)[]>();
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 
+	const preferences = getPreferenceValues<Preferences>();
+
 	async function runSearch() {
 		if (!word.trim()) return;
 
 		setIsLoading(true);
 
 		try {
-			const response = await fetch(`https://focloir.ie/en/dictionary/ei/${word}`);
+			const response = await fetch(`https://focloir.ie/${preferences.language === "en" ? "en" : "ga"}/dictionary/ei/${word}`);
 			const parsed = await parseFetchResponse(response);
 			setData(parsed);
 		} finally {
@@ -40,20 +42,22 @@ export default function Command() {
 			isShowingDetail
 		>
 			{/* Handle no data, no word etc. */}
-			{word === "" && !data && <List.EmptyView title="Type a word and press enter to search" />}
-			{word !== "" && data && <List.EmptyView title="No results found" />}
+			{word === "" && !data &&
+				<List.EmptyView title={preferences.language === "en" ? "Type a word and press enter to start" : "Clóscríobh focal agus brúigh an eochair iontrála a tosú"} />
+			}
+			{word !== "" && data && <List.EmptyView title={preferences.language === "en" ? "No results found" : "Níl fuarthas aon toradh"} />}
 			<List.Section title="Results" subtitle={""}>
 				{/* @ts-expect-error: Since data is never null, entry cannot be null, so this error is ignored */}
-				{ data && word !== "" && data?.filter((entry) => entry && entry.number).map((entry) => <DictionaryEntryListItem key={entry?.number} entry={entry} />)}
+				{data && word !== "" && data?.filter((entry) => entry && entry.number).map((entry) => <DictionaryEntryListItem key={entry?.number} entry={entry} language={preferences.language} />)}
 			</List.Section>
 		</List>
 	);
 }
 
-function DictionaryEntryListItem({ entry }: { entry: DictionaryEntry }) {
+function DictionaryEntryListItem({ entry, language }: { entry: DictionaryEntry, language: string }) {
 	if (entry == null) return null;
 	const markdown = [
-		"# Translations",
+		language === "en" ? "# Translations" : "# Aistriúcháin",
 		...entry.words.map((word: string) => {
 			return `**${word}**\n`;
 		}),
@@ -61,7 +65,7 @@ function DictionaryEntryListItem({ entry }: { entry: DictionaryEntry }) {
 			const gender_word = gender.split(" ");
 			return `*${gender_word}*\n`;
 		}),
-		"# Examples",
+		language === "en" ? "# Examples" : "# Samplaí",
 		...entry.examples.map((example: { english: string, irish: string }) => {
 			return `
 ### ${example.english}\n
