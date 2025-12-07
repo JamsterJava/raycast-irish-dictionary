@@ -4,7 +4,7 @@ import * as cheerio from 'cheerio';
 
 export default function Command() {
 	const [word, setWord] = useState("");
-	const [data, setData] = useState<DictionaryEntry[]>();
+	const [data, setData] = useState<(DictionaryEntry | null)[]>();
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 
 	async function runSearch() {
@@ -40,21 +40,33 @@ export default function Command() {
 			isShowingDetail
 		>
 			{/* Handle no data, no word etc. */}
-			{word === "" && !data && <List.EmptyView icon={{ source: "https://placekitten.com/500/500" }} title="Type a word and press ALT+Enter to search" />}
-			{word !== "" && data && <List.EmptyView icon={{ source: "https://placekitten.com/500/500" }} title="No results found" />}
+			{word === "" && !data && <List.EmptyView title="Type a word and press enter to search" />}
+			{word !== "" && data && <List.EmptyView title="No results found" />}
 			<List.Section title="Results" subtitle={""}>
-				{ data && word !== "" && data?.map((entry) => <DictionaryEntryListItem key={entry.number} entry={entry} />)}
+				{/* @ts-expect-error: Since data is never null, entry cannot be null, so this error is ignored */}
+				{ data && word !== "" && data?.filter((entry) => entry && entry.number).map((entry) => <DictionaryEntryListItem key={entry?.number} entry={entry} />)}
 			</List.Section>
 		</List>
 	);
 }
 
 function DictionaryEntryListItem({ entry }: { entry: DictionaryEntry }) {
+	if (entry == null) return null;
 	const markdown = [
 		"# Translations",
 		...entry.words.map((word: string) => {
-			const [translation_word, gender] = word.split(" ");
-			return `#### ${translation_word} ${gender &&  ("(" + gender.trim() + ")")}`;
+			return `**${word}**\n`;
+		}),
+		...entry.genders.map((gender: string) => {
+			const gender_word = gender.split(" ");
+			return `*${gender_word}*\n`;
+		}),
+		"# Examples",
+		...entry.examples.map((example: { english: string, irish: string }) => {
+			return `
+### ${example.english}\n
+${example.irish}
+`
 		})
 	].join("\n");
 
@@ -95,6 +107,7 @@ async function parseFetchResponse(response: Response) {
 	.toArray()
 	.filter((el) => {
 		const $el = $(el);
+		// Quick trick to remove phrases
 		const hasEmptyLang = $el.find('[xml\\:lang=""]').length > 0;
 		return !hasEmptyLang;
 	});
@@ -103,7 +116,9 @@ async function parseFetchResponse(response: Response) {
 		const $def = $(definition);
 
 		const entry_number = $def.find(".span_sensenum").text().trim();
-		const partOfSpeech = $def.find(".pos").first().text().trim() || "Unknown";
+		const partOfSpeech = $def.find(".pos").first().text().trim() || "Phrase"; // Ideally phrases should be handled better, but for another time
+
+		if (partOfSpeech === "Phrase") return null // Intentionally remove phrases, as they aren't properly handled yet
 
 		const domains = $def
 		.find(".lbl_purple_sc_i")
@@ -112,8 +127,15 @@ async function parseFetchResponse(response: Response) {
 
 		const editorial_meaning = $def.find(".EDMEANING").text().trim();
 
-		const words = $def.find(".cit_translation").toArray().map((el) => $(el).text().trim());
-		const examples = $def.find(".cit_example").toArray().map((el) => $(el).text().trim());
+		const words = $def.find(".cit_translation .quote").toArray().map((el) => $(el).text().trim());
+		const genders = $def.find(".cit_translation .lbl_black_i").toArray().map((el) => $(el).text().trim());
+		const examples = $def.find(".cit_example").toArray().map((el) => {
+			const $el = $(el);
+			const english = $el.find("> .quote").text().trim();
+			const irish = $el.find(".cit_translation_noline").text().trim();
+
+			return { english, irish };
+		});
 
 		return {
 			number: entry_number,
@@ -121,6 +143,7 @@ async function parseFetchResponse(response: Response) {
 			domains: domains,
 			editorial_meaning: editorial_meaning,
 			words: words,
+			genders: genders,
 			examples: examples,
 		} as unknown as DictionaryEntry;
 	});
@@ -132,5 +155,9 @@ interface DictionaryEntry {
 	domains: Array<string>;
 	editorial_meaning: string;
 	words: string[];
-	examples: string[];
+	genders: string[];
+	examples: {
+		english: string;
+		irish: string;
+	}[];
 }
