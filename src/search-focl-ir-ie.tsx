@@ -27,12 +27,12 @@ export default function Command() {
 		<List
 			isLoading={isLoading}
 			onSearchTextChange={setWord}
-			searchBarPlaceholder="Enter word..."
+			searchBarPlaceholder={preferences.language === "en" ? "Enter word..." : "Clóscríobh focal..."}
 			searchBarAccessory={
 				<ActionPanel>
 					<ActionPanel.Section>
 						<Action
-							title="Search"
+							title={preferences.language === "en" ? "Search" : "Cuardach"}
 							onAction={runSearch}
 							shortcut={{ modifiers: ["alt"], key: "enter" }}
 						/>
@@ -46,7 +46,7 @@ export default function Command() {
 				<List.EmptyView title={preferences.language === "en" ? "Type a word and press enter to start" : "Clóscríobh focal agus brúigh an eochair iontrála a tosú"} />
 			}
 			{word !== "" && data && <List.EmptyView title={preferences.language === "en" ? "No results found" : "Níl fuarthas aon toradh"} />}
-			<List.Section title="Results" subtitle={""}>
+			<List.Section title={preferences.language === "en" ? "Results" : "Toradh"}>
 				{/* @ts-expect-error: Since data is never null, entry cannot be null, so this error is ignored */}
 				{data && word !== "" && data?.filter((entry) => entry && entry.number).map((entry) => <DictionaryEntryListItem key={entry?.number} entry={entry} language={preferences.language} />)}
 			</List.Section>
