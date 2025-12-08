@@ -8,7 +8,7 @@ export default function Command() {
 				title="Unimplemented"
 				actions={
 					<ActionPanel>
-					<Action.Push title="Show Details" target={<Detail markdown="# Sorry, this feature isn't implemented yet." />} />
+						<Action.Push title="Show Details" target={<Detail markdown="# Sorry, this feature isn't implemented yet." />} />
 					</ActionPanel>
 				}
 			/>

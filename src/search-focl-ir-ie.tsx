@@ -1,4 +1,4 @@
-import { List, ActionPanel, Action, Color, getPreferenceValues } from "@raycast/api";
+import { List, ActionPanel, Action, Color, getPreferenceValues, showToast, Toast, Icon } from "@raycast/api";
 import { useState } from "react";
 import * as cheerio from 'cheerio';
 
@@ -48,13 +48,13 @@ export default function Command() {
 			{word !== "" && data && <List.EmptyView title={preferences.language === "en" ? "No results found" : "Níl fuarthas aon toradh"} />}
 			<List.Section title={preferences.language === "en" ? "Results" : "Toradh"}>
 				{/* @ts-expect-error: Since data is never null, entry cannot be null, so this error is ignored */}
-				{data && word !== "" && data?.filter((entry) => entry && entry.number).map((entry) => <DictionaryEntryListItem key={entry?.number} entry={entry} language={preferences.language} />)}
+				{data && word !== "" && data?.filter((entry) => entry && entry.number).map((entry) => <DictionaryEntryListItem key={entry?.number} entry={entry} language={preferences.language} word={word} />)}
 			</List.Section>
 		</List>
 	);
 }
 
-function DictionaryEntryListItem({ entry, language }: { entry: DictionaryEntry, language: string }) {
+function DictionaryEntryListItem({ entry, language, word }: { entry: DictionaryEntry, language: string, word: string }) {
 	if (entry == null) return null;
 	const markdown = [
 		language === "en" ? "# Translations" : "# Aistriúcháin",
@@ -93,7 +93,71 @@ ${example.irish}
 					markdown={markdown}
 				/>
 			}
+			actions={
+				<ActionPanel title={entry.editorial_meaning}>
+					<Action.OpenInBrowser url={`https://focloir.ie/${language === "en" ? "en" : "ga"}/dictionary/ei/${word}#:~:text=${entry.number}`} />
+					<Action.CopyToClipboard
+						// eslint-disable-next-line @raycast/prefer-title-case
+						title={language === "en" ? "Copy to Clipboard" : "Cóipeáil ar Gearrthaisce"}
+						content={entry.words[0]}
+					/>
+					{entry.partOfSpeech.toLowerCase() === "verb" &&
+						<Action
+							// eslint-disable-next-line @raycast/prefer-title-case
+							title={language === "en" ? "View Verb Conjugation" : "Féicéail ar Réimniú Briathra"}
+							icon={Icon.SpeechBubbleActive}
+							onAction={() => showToast({ title: "Feature Unimplemented", style: Toast.Style.Failure })}
+						/>
+					}
+					<Action.Push
+						title={language === "en" ? "Pronounciation" : "Fuaimniú"}
+						icon={Icon.Speaker}
+						target={<PronounciationList entry={entry} language={language} />}
+					/>
+				</ActionPanel>
+			}
 		/>
+	);
+}
+
+function PronounciationList({ entry, language }: { entry: DictionaryEntry, language: string }) {
+	return (
+		<List>
+			{entry.audio_files.map((audio_file) => {
+				const dialect_letter = audio_file.replace(".mp3", "").slice(-1); // "c", "m" or "u"
+				let dialect: string;
+				switch (dialect_letter) {
+					case "c":
+						dialect = "Connacht"
+						break
+					case "m":
+						dialect = "Munster"
+						break
+					case "u":
+						dialect = "Ulster"
+						break
+					default:
+						dialect = "Unknown"
+						break
+				}
+				return (
+					<List.Item
+						key={dialect}
+						title={dialect}
+						icon={Icon.SpeakerHigh}
+						actions={
+							<ActionPanel>
+								<Action.OpenInBrowser
+									// eslint-disable-next-line @raycast/prefer-title-case
+									title={language === "en" ? "Listen" : "Éist"}
+									url={audio_file}
+								/>
+							</ActionPanel>
+						}
+					/>
+				)
+			})}
+		</List>
 	);
 }
 
@@ -140,6 +204,11 @@ async function parseFetchResponse(response: Response) {
 
 			return { english, irish };
 		});
+		const audio_files: Array<string> = [];
+		const audio_buttons = $def.find(".audio_play_button").toArray()
+		audio_buttons.map((audio_button) => {
+			audio_files.push(audio_button.attribs['data-src-mp3'])
+		})
 
 		return {
 			number: entry_number,
@@ -149,6 +218,7 @@ async function parseFetchResponse(response: Response) {
 			words: words,
 			genders: genders,
 			examples: examples,
+			audio_files: audio_files
 		} as unknown as DictionaryEntry;
 	});
 }
@@ -164,4 +234,5 @@ interface DictionaryEntry {
 		english: string;
 		irish: string;
 	}[];
+	audio_files: Array<string>
 }
