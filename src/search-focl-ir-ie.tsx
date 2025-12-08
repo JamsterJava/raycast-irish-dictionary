@@ -65,7 +65,7 @@ function DictionaryEntryListItem({ entry, language, word }: { entry: DictionaryE
 			const gender_word = gender.split(" ");
 			return `*${gender_word}*\n`;
 		}),
-		language === "en" ? "# Examples" : "# Samplaí",
+		entry.examples.length > 0 ? (language === "en" ? "# Examples" : "# Samplaí") : "",
 		...entry.examples.map((example: { english: string, irish: string }) => {
 			return `
 ### ${example.english}\n
